@@ -51,7 +51,7 @@ Trellis Extension                          @tintinweb/pi-subagents
    - Remove empty `skills`, `prompts`, `themes` arrays
 
 2. **Agent .md files** (`trellis-implement.md`, `trellis-check.md`, `trellis-research.md`)
-   - Fix tool names to match actual Pi tool names (`Read` → `read`, `Glob` → `find_files`, `Grep` → `grep`, etc.)
+   - Fix tool names to match actual Pi tool names (`Read` → `read`, `Glob` → `find`, `Grep` → `grep`, etc.)
    - Add `display_name` frontmatter for tintinweb UI
    - Update `trellis-research.md` to find task directory from context instead of calling `task.py current`
 

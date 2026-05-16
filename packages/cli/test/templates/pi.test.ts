@@ -18,7 +18,7 @@ describe("pi templates", () => {
       expect(agent.content).toContain(`name: ${agent.name}`);
       expect(agent.content).not.toContain("inject-subagent-context.py");
       expect(agent.content).toContain("display_name");
-      expect(agent.content).toContain("find_files");
+      expect(agent.content).toContain("find");
       expect(agent.content).toContain("grep");
     }
   });

@@ -11,7 +11,7 @@
 
 **Changes:**
 1. Add `display_name` to frontmatter
-2. Fix tool names: `Read, Write, Edit, Bash, Glob, Grep` → `read, write, edit, bash, grep, find_files`
+2. Fix tool names: `Read, Write, Edit, Bash, Glob, Grep` → `read, write, edit, bash, grep, find`
 3. `trellis-research.md`: Update task resolution step (no more `task.py current`)
 4. Add `prompt_mode: replace` (explicit)
 

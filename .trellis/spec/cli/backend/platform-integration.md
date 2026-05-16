@@ -654,7 +654,7 @@ pi.events.on("subagents:failed", (data: {
 |---|---|
 | `trellis_subagent` tool | Only accepts `agent` in `["trellis-implement", "trellis-check", "trellis-research"]`. Schema-level `enum` prevents misuse. |
 | Context injection | Trellis context (PRD, design, jsonl) is embedded into the `prompt` field of the RPC spawn payload. |
-| Agent definitions | `.pi/agents/trellis-{implement,check,research}.md` with tintinweb-compatible frontmatter (`name`, `display_name`, `description`, `tools`, `prompt_mode`). Tool names must match Pi's actual tool names (`read`, `write`, `edit`, `bash`, `grep`, `find_files`). |
+| Agent definitions | `.pi/agents/trellis-{implement,check,research}.md` with tintinweb-compatible frontmatter (`name`, `display_name`, `description`, `tools`, `prompt_mode`). Tool names must match Pi's actual tool names (`read`, `write`, `edit`, `bash`, `grep`, `find`). |
 | Progress | Tintinweb's AgentWidget renders live spinner, tool calls, and token counts in the TUI. The `trellis_subagent` tool resolves its Promise when `subagents:completed` or `subagents:failed` fires. |
 | Timeouts | RPC spawn reply: 10 s. Agent completion: 10 min. |
 | Non-Trellis agents | The `Agent` tool (registered by tintinweb) is for general-purpose agents. `trellis_subagent` is ONLY for Trellis workflow agents. |

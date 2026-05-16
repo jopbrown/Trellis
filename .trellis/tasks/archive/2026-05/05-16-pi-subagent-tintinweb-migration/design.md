@@ -134,7 +134,7 @@ pi.events.emit("subagents:failed", {
 | `Write` | `write` |
 | `Edit` | `edit` |
 | `Bash` | `bash` |
-| `Glob` | Not available → `find_files` |
+| `Glob` | Not available → `find` |
 | `Grep` | `grep` |
 
 ### Frontmatter Additions
