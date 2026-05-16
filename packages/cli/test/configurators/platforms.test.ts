@@ -809,8 +809,11 @@ describe("configurePlatform", () => {
     expect(extension).toContain("subagents:rpc:spawn");
     expect(extension).toContain("subagents:completed");
     expect(extension).toContain("subagents:failed");
-    expect(extension).toContain("import { randomUUID }");
-    expect(extension).toContain('"trellis-implement", "trellis-check", "trellis-research"');
+    expect(extension).toContain("randomUUID } from \"node:crypto\"");
+    expect(extension).toContain("VALID_TRELLIS_AGENTS");
+    expect(extension).toContain('"trellis-implement"');
+    expect(extension).toContain('"trellis-check"');
+    expect(extension).toContain('"trellis-research"');
     expect(extension).toContain("ctx?.ui?.notify?.(");
     expect(extension).toContain("systemPrompt:");
     // Removed subprocess spawning code
