@@ -570,7 +570,12 @@ function rpcSpawn(
       }
     });
 
-    const options: JsonObject = {};
+    // RPC-spawned agents must be background so tintinweb fires
+    // subagents:completed / subagents:failed lifecycle events.
+    const options: JsonObject = {
+      isBackground: true,
+      description: type,
+    };
     if (model) options.model = model;
 
     events.emit("subagents:rpc:spawn", {
