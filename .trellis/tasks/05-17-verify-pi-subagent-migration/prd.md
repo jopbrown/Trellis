@@ -39,9 +39,15 @@ PRD `.trellis/tasks/archive/2026-05/05-16-pi-subagent-tintinweb-migration/prd.md
 
 10. **Non-Trellis agent routing** ✅ — `Agent` tool spawns `general-purpose` subagent, executes bash, writes file. Non-Trellis agents route correctly through tintinweb's Agent tool.
 
+### Context Isolation (verified ✅)
+
+11. **Subagent context isolation** ✅ — Subagent confirmed "NO_CONTEXT" when asked about parent conversation secrets. Trellis subagents start with clean context (only injected task context + delegated prompt). No parent conversation leak.
+
+12. **Parent receives subagent output** ✅ — `trellis_subagent` tool resolves with subagent's completion text. Parent agent can read, relay, or act on the result.
+
 ## Scope
 
-Lightweight verification + one-line bug fix. All 10 acceptance criteria verified.
+Lightweight verification + one-line bug fix. All 12 acceptance criteria verified.
 
 ## Out of Scope
 
