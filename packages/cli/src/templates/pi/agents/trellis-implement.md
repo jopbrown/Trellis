@@ -1,8 +1,10 @@
 ---
 name: trellis-implement
+display_name: Trellis Implement
 description: |
   Code implementation expert. Understands Trellis specs and requirements, then implements features. No git commit allowed.
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: read, write, edit, bash, grep, find
+prompt_mode: replace
 ---
 # Implement Agent
 

@@ -11,11 +11,7 @@
   ],
   "packages": [
     {
-      "source": "npm:pi-subagents",
-      "extensions": [],
-      "skills": [],
-      "prompts": [],
-      "themes": []
+      "source": "npm:@tintinweb/pi-subagents"
     }
   ]
 }

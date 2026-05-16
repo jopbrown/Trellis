@@ -1,8 +1,10 @@
 ---
 name: trellis-check
+display_name: Trellis Check
 description: |
   Code quality check expert. Reviews changes against Trellis specs, fixes issues directly, and verifies quality gates.
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: read, write, edit, bash, grep, find
+prompt_mode: replace
 ---
 # Check Agent
 

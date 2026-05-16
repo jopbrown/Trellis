@@ -339,11 +339,7 @@ describe("scrubPiSettings", () => {
       prompts: ["./prompts"],
       packages: [
         {
-          source: "npm:pi-subagents",
-          extensions: [],
-          skills: [],
-          prompts: [],
-          themes: [],
+          source: "npm:@tintinweb/pi-subagents",
         },
       ],
     };
@@ -362,11 +358,7 @@ describe("scrubPiSettings", () => {
       prompts: ["./prompts"],
       packages: [
         {
-          source: "npm:pi-subagents",
-          extensions: [],
-          skills: [],
-          prompts: [],
-          themes: [],
+          source: "npm:@tintinweb/pi-subagents",
         },
         {
           source: "npm:user-package",

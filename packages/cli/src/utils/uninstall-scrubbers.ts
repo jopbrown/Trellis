@@ -227,7 +227,7 @@ export function scrubOpencodePackageJson(content: string): ScrubResult {
 const PI_TRELLIS_EXTENSION = "./extensions/trellis/index.ts";
 const PI_TRELLIS_SKILLS = "./skills";
 const PI_TRELLIS_PROMPTS = "./prompts";
-const PI_SUBAGENTS_PACKAGE = "npm:pi-subagents";
+const PI_SUBAGENTS_PACKAGE = "npm:@tintinweb/pi-subagents";
 
 function isTrellisPiEntry(value: unknown, target: string): boolean {
   return typeof value === "string" && value === target;
@@ -237,7 +237,7 @@ function isTrellisPiEntry(value: unknown, target: string): boolean {
  * Scrub `.pi/settings.json`:
  * - drop `enableSkillCommands` (trellis-flagged)
  * - remove trellis entries from `extensions`/`skills`/`prompts` arrays
- * - remove trellis-managed `packages["npm:pi-subagents"]` isolation override
+ * - remove trellis-managed `packages["npm:@tintinweb/pi-subagents"]` entry
  * - drop arrays that become empty
  */
 export function scrubPiSettings(content: string): ScrubResult {

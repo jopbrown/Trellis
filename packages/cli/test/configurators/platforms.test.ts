@@ -798,30 +798,32 @@ describe("configurePlatform", () => {
       "utf-8",
     );
     expect(extension).toContain('registerTool?.({');
-    expect(extension).toContain('name: "subagent"');
+    expect(extension).toContain('name: "trellis_subagent"');
     expect(extension).toContain('pi.on?.("session_start"');
     expect(extension).toContain('pi.on?.("tool_call"');
     expect(extension).toContain("function injectTrellisContextIntoBash");
     expect(extension).toContain("ctx?.sessionManager?.getSessionId");
     expect(extension).toContain("TRELLIS_CONTEXT_ID: contextKey");
-    expect(extension).toContain("function stripMarkdownFrontmatter");
-    expect(extension).toContain("function parseAgentConfig");
-    expect(extension).toContain("function resolveSubagentRunConfig");
-    expect(extension).toContain("function buildPiModelArgs");
-    expect(extension).toContain(
-      'return thinking ? ["--thinking", thinking] : []',
-    );
-    expect(extension).toContain("function resolvePiInvocation");
-    expect(extension).toContain("TRELLIS_PI_CLI_JS");
-    expect(extension).toContain("...modelArgs");
-    expect(extension).toContain("child.stdin?.end(prompt)");
-    expect(extension).toContain("class BoundedBufferCollector");
-    expect(extension).toContain("function extractFinalAssistantText");
-    expect(extension).toContain("function formatPiOutput");
-    expect(extension).toContain('"## Trellis Agent Definition"');
-    expect(extension).toContain('content: [{ type: "text", text: output }]');
+    expect(extension).toContain("function rpcSpawn");
+    expect(extension).toContain("function waitForAgentCompletion");
+    expect(extension).toContain("subagents:rpc:spawn");
+    expect(extension).toContain("subagents:completed");
+    expect(extension).toContain("subagents:failed");
+    expect(extension).toContain("import { randomUUID }");
+    expect(extension).toContain('"trellis-implement", "trellis-check", "trellis-research"');
     expect(extension).toContain("ctx?.ui?.notify?.(");
     expect(extension).toContain("systemPrompt:");
+    // Removed subprocess spawning code
+    expect(extension).not.toContain("function resolvePiInvocation");
+    expect(extension).not.toContain("TRELLIS_PI_CLI_JS");
+    expect(extension).not.toContain("class BoundedBufferCollector");
+    expect(extension).not.toContain("function buildPiModelArgs");
+    expect(extension).not.toContain("function resolveSubagentRunConfig");
+    expect(extension).not.toContain("function parseAgentConfig");
+    expect(extension).not.toContain("function extractFinalAssistantText");
+    expect(extension).not.toContain("function formatPiOutput");
+    expect(extension).not.toContain("child.stdin?.end(prompt)");
+    expect(extension).not.toContain('"## Trellis Agent Definition"');
     expect(extension).not.toContain("message: buildTrellisContext");
     expect(extension).not.toContain('message:\n      "Trellis project context');
     expect(extension).not.toContain("persistent: true");
@@ -855,14 +857,10 @@ describe("configurePlatform", () => {
     };
     expect(settings.skills).toEqual(["./skills"]);
     const subagentsPkg = settings.packages?.find(
-      (p) => typeof p === "object" && p.source === "npm:pi-subagents",
+      (p) => typeof p === "object" && p.source === "npm:@tintinweb/pi-subagents",
     );
     expect(subagentsPkg).toEqual({
-      source: "npm:pi-subagents",
-      extensions: [],
-      skills: [],
-      prompts: [],
-      themes: [],
+      source: "npm:@tintinweb/pi-subagents",
     });
   });
 

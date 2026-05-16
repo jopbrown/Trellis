@@ -94,14 +94,10 @@ describe("pi templates", () => {
     expect(settings.skills).not.toEqual(["../.agents/skills"]);
     expect(settings.prompts).toEqual(["./prompts"]);
     const subagentsPkg = settings.packages?.find(
-      (p) => typeof p === "object" && p.source === "npm:pi-subagents",
+      (p) => typeof p === "object" && p.source === "npm:@tintinweb/pi-subagents",
     );
     expect(subagentsPkg).toEqual({
-      source: "npm:pi-subagents",
-      extensions: [],
-      skills: [],
-      prompts: [],
-      themes: [],
+      source: "npm:@tintinweb/pi-subagents",
     });
   });
 
@@ -151,44 +147,44 @@ describe("pi templates", () => {
     );
   });
 
-  it("extension resolves Windows npm-shim Pi installs through the CLI JS entrypoint", () => {
+  it("extension does NOT include subprocess spawning code", () => {
     const extension = getExtensionTemplate();
 
-    expect(extension).toContain("function resolvePiInvocation");
-    expect(extension).toContain("TRELLIS_PI_CLI_JS");
-    expect(extension).toContain("TRELLIS_PI_CLI_JS points to a missing file");
-    expect(extension).toContain("process.execPath");
-    expect(extension).toContain("PI_CLI_JS_SEGMENTS");
-    expect(extension).toContain("process.env.APPDATA");
-    expect(extension).toContain("process.env.npm_config_prefix");
-    expect(extension).toContain("pathValue.split(delimiter)");
-    expect(extension).toContain('return { command: "pi", argsPrefix: [] }');
+    // Removed: manual Pi subprocess management
+    expect(extension).not.toContain("function resolvePiInvocation");
+    expect(extension).not.toContain("TRELLIS_PI_CLI_JS");
+    expect(extension).not.toContain("PI_CLI_JS_SEGMENTS");
+    expect(extension).not.toContain("process.env.APPDATA");
+    expect(extension).not.toContain("pathValue.split(delimiter)");
+    expect(extension).not.toContain('return { command: "pi", argsPrefix: [] }');
+    expect(extension).not.toContain("class BoundedBufferCollector");
+    expect(extension).not.toContain('spawn(invocation.command');
+    expect(extension).not.toContain('"pi subagent cancelled"');
+
+    // Kept: session overview (still uses spawnSync)
+    expect(extension).toContain("import { spawnSync } from");
   });
 
-  it("extension forwards Trellis context into spawned Pi subagents", () => {
+  it("extension uses RPC to spawn sub-agents via tintinweb", () => {
     const extension = getExtensionTemplate();
 
-    expect(extension).toContain(
-      "runSubagent(projectRoot, input, contextKey, _signal)",
-    );
-    expect(extension).toContain("buildSubagentPrompt(");
-    expect(extension).toContain("runConfig");
-    expect(extension).toContain(
-      "{ ...process.env, TRELLIS_CONTEXT_ID: contextKey }",
-    );
-    expect(extension).toContain("signal?: AbortSignal");
-    expect(extension).toContain("child.kill()");
-    expect(extension).toContain('new Error("pi subagent cancelled")');
+    expect(extension).toContain("trellis_subagent");
+    expect(extension).toContain("subagents:rpc:spawn");
+    expect(extension).toContain("function rpcSpawn");
+    expect(extension).toContain("function waitForAgentCompletion");
+    expect(extension).toContain("subagents:completed");
+    expect(extension).toContain("subagents:failed");
+    expect(extension).toContain("import { randomUUID }");
+
+    // Only allows Trellis agents
+    expect(extension).toContain('"trellis-implement", "trellis-check", "trellis-research"');
+
+    // No subprocess-based agent spawning
+    expect(extension).not.toContain("function runSubagent");
+    expect(extension).not.toContain("function runPi");
+    expect(extension).not.toContain("buildSubagentPrompt");
+    expect(extension).not.toContain("child.kill()");
   });
-
-  it("extension sends subagent prompts through stdin with bounded output buffers", () => {
-    const extension = getExtensionTemplate();
-
-    expect(extension).toContain('"--mode"');
-    expect(extension).toContain('"text"');
-    expect(extension).toContain('stdio: ["pipe", "pipe", "pipe"]');
-    expect(extension).toContain("child.stdin?.end(prompt)");
-    expect(extension).toContain("class BoundedBufferCollector");
     expect(extension).toContain("MAX_SUBAGENT_STDOUT_BYTES");
     expect(extension).toContain("MAX_SUBAGENT_STDERR_BYTES");
     expect(extension).not.toContain("toPiPromptArgument");

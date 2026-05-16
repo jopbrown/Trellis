@@ -103,7 +103,7 @@ When adding a new platform `{platform}`, update the following:
 
 > Note: Pi Agent uses project-local TypeScript extensions instead of Trellis Python hooks. Keep generated hooks under `.pi/extensions/`, write prompt templates under `.pi/prompts/trellis-*.md`, write Agent Skills under `.pi/skills/`, and do not copy `shared-hooks/*.py` into `.pi/`. Do not redirect Pi to shared `.agents/skills` until shared Agent Skill text is platform-neutral; Codex and Pi command references can differ. For the nested Pi launcher contract, see "Scenario: Pi Sub-Agent Launcher".
 >
-> Project-local package isolation rule: when Trellis enables Pi for a project, `.pi/settings.json` must include a project-level `packages` array entry with `"source": "npm:pi-subagents"` and empty resource lists (`extensions`, `skills`, `prompts`, `themes`) to isolate global `npm:pi-subagents` effects from the repository while keeping the user's global Pi environment intact outside the project.
+> Project-local package rule: when Trellis enables Pi for a project, `.pi/settings.json` must include a project-level `packages` array entry with `"source": "npm:@tintinweb/pi-subagents"` so sub-agents launched by the `trellis_subagent` tool use tintinweb's live-progress widget and Cross-Extension RPC. Users who have other sub-agent packages installed globally (e.g. `nicobailon/pi-subagents`) should disable them in their global Pi config to avoid tool-name conflicts.
 
 **Skills pattern** (Codex, Kiro):
 
@@ -605,117 +605,106 @@ Extension-backed platforms keep hook-equivalent behavior in platform-native exte
 
 ---
 
-## Scenario: Pi Sub-Agent Launcher
+## Scenario: Pi Sub-Agent Launcher (RPC-based)
 
 ### 1. Scope / Trigger
 
-Use this contract when `.pi/extensions/trellis/index.ts` launches a nested Pi process for the Trellis `subagent` tool.
+Use this contract when `.pi/extensions/trellis/index.ts` spawns a Trellis workflow sub-agent (implement, check, or research) via the `trellis_subagent` tool.
 
-This is Windows-sensitive runtime integration. Node `spawn("pi", ...)` can fail with `ENOENT` when Pi is installed through an npm shim instead of a real `pi.exe`, and passing the full delegated prompt as an argv value can hit platform argument-length limits.
+Sub-agent execution is delegated to `@tintinweb/pi-subagents` through its **Cross-Extension RPC** interface (`pi.events` event bus). The Trellis extension does NOT directly spawn Pi child processes for sub-agents.
 
 ### 2. Signatures
 
-Launcher resolver:
+RPC spawn:
 
 ```typescript
-interface PiInvocation {
-  command: string;
-  argsPrefix: string[];
-}
+// Emit spawn request
+pi.events.emit("subagents:rpc:spawn", {
+  requestId: string,    // unique UUID
+  type: string,         // agent type (trellis-implement | trellis-check | trellis-research)
+  prompt: string,       // full prompt with Trellis context
+  options?: {
+    model?: string,     // optional model override
+  }
+});
 
-function resolvePiInvocation(): PiInvocation;
+// Receive spawn reply on "subagents:rpc:spawn:reply:<requestId>"
+{ success: true, data: { id: string } }
+// or
+{ success: false, error: string }
 ```
 
-Nested launch:
+Completion listener:
 
 ```typescript
-spawn(invocation.command, [
-  ...invocation.argsPrefix,
-  "--mode",
-  "text",
-  "-p",
-  "--no-session",
-], {
-  cwd: projectRoot,
-  env: { ...process.env, TRELLIS_CONTEXT_ID: contextKey },
-  stdio: ["pipe", "pipe", "pipe"],
-  windowsHide: true,
-});
+// Tintinweb emits when an agent finishes
+pi.events.on("subagents:completed", (data: {
+  id: string; type: string; result: string; status: string;
+  toolUses: number; durationMs: number;
+}) => { ... });
+
+pi.events.on("subagents:failed", (data: {
+  id: string; type: string; error: string; status: string;
+}) => { ... });
 ```
 
 ### 3. Contracts
 
-| Field / Env | Contract |
+| Surface | Contract |
 |---|---|
-| `TRELLIS_PI_CLI_JS` | Optional absolute or relative path to `@mariozechner/pi-coding-agent/dist/cli.js`; if set, it is authoritative |
-| `command` | `process.execPath` when a CLI JS entrypoint is resolved; otherwise `"pi"` fallback |
-| `argsPrefix` | `[cliJs]` for resolved JS entrypoint; `[]` for fallback |
-| Prompt transport | Write delegated prompt to `child.stdin`, never as a positional argv prompt |
-| Output mode | Use `--mode text`; keep final-output formatter tolerant of structured or diagnostic output |
-| Context | Forward `TRELLIS_CONTEXT_ID` into the child env when available |
-| Agent config | Parse `model`, `thinking`, and `fallbackModels` from `.pi/agents/*.md` frontmatter |
-| Per-call overrides | `subagent` tool input may override frontmatter with `model` and `thinking` |
-| Model/thinking args | If model and thinking are present and model has no thinking suffix, pass `--model <model>:<thinking>`; if model already has a suffix, pass it unchanged; if thinking exists without model, pass `--thinking <level>` |
-| Output buffers | Bound stdout and stderr collection separately; keep the tail plus truncation notice |
-
-Candidate JS entrypoint lookup should cover:
-
-```text
-process.argv entries ending in pi-coding-agent/dist/cli.js
-npm_config_prefix / NPM_CONFIG_PREFIX
-APPDATA/npm
-PATH entries, their parent directories, and parent/lib variants
-```
+| `trellis_subagent` tool | Only accepts `agent` in `["trellis-implement", "trellis-check", "trellis-research"]`. Schema-level `enum` prevents misuse. |
+| Context injection | Trellis context (PRD, design, jsonl) is embedded into the `prompt` field of the RPC spawn payload. |
+| Agent definitions | `.pi/agents/trellis-{implement,check,research}.md` with tintinweb-compatible frontmatter (`name`, `display_name`, `description`, `tools`, `prompt_mode`). Tool names must match Pi's actual tool names (`read`, `write`, `edit`, `bash`, `grep`, `find_files`). |
+| Progress | Tintinweb's AgentWidget renders live spinner, tool calls, and token counts in the TUI. The `trellis_subagent` tool resolves its Promise when `subagents:completed` or `subagents:failed` fires. |
+| Timeouts | RPC spawn reply: 10 s. Agent completion: 10 min. |
+| Non-Trellis agents | The `Agent` tool (registered by tintinweb) is for general-purpose agents. `trellis_subagent` is ONLY for Trellis workflow agents. |
 
 ### 4. Validation & Error Matrix
 
 | Condition | Behavior |
 |---|---|
-| `TRELLIS_PI_CLI_JS` points to an existing file | Launch with `process.execPath` and `[cliJs, "--mode", "text", "-p", "--no-session"]` |
-| `TRELLIS_PI_CLI_JS` points to a missing file | Reject with an error naming `TRELLIS_PI_CLI_JS` and the resolved missing path |
-| A candidate CLI JS entrypoint exists | Launch with `process.execPath` and the candidate path |
-| No candidate CLI JS entrypoint exists | Fall back to `spawn("pi", ["--mode", "text", "-p", "--no-session"])` |
-| `AbortSignal` is already aborted | Reject before spawning |
-| `AbortSignal` fires after spawn | Kill the child and reject with `pi subagent cancelled` |
-| Child exits non-zero | Reject with stderr, else stdout, else an exit-code message |
-| stdout/stderr exceed limits | Keep the most recent bytes and prefix output with a truncation notice |
+| Agent name not in enum | Schema-level rejection (AI won't see invalid options); runtime guard returns error text |
+| `pi.events` not available | Tool returns error: "pi.events not available" |
+| RPC spawn returns `success: false` | Tool returns error with the RPC error message |
+| RPC spawn times out (10 s) | Tool returns error: "RPC spawn timed out — is @tintinweb/pi-subagents installed?" |
+| `subagents:failed` event received | Tool returns error text with failure details |
+| Agent completion times out (10 min) | Tool rejects with timeout error |
+| `AbortSignal` fires | Tool resolves with "Agent cancelled" |
+| `@tintinweb/pi-subagents` not installed | RPC spawn times out → user gets actionable error message |
 
 ### 5. Good / Base / Bad Cases
 
 Good:
 
 ```typescript
-const invocation = resolvePiInvocation();
-const child = spawn(invocation.command, [
-  ...invocation.argsPrefix,
-  "--mode",
-  "text",
-  "-p",
-  "--no-session",
-], { stdio: ["pipe", "pipe", "pipe"] });
-child.stdin?.end(prompt);
+const spawnResult = await rpcSpawn(events, "trellis-implement", fullPrompt);
+const completion = await waitForAgentCompletion(events, spawnResult.id, signal);
+return { content: [{ type: "text", text: completion.text }] };
 ```
 
 Base:
 
 ```typescript
-return { command: "pi", argsPrefix: [] };
+// Trellis extension delegates to tintinweb for all sub-agent lifecycle.
+// No child_process.spawn, no BoundedBufferCollector, no Pi CLI path resolution.
 ```
 
 Bad:
 
 ```typescript
-spawn("pi", ["--mode", "json", "-p", "--no-session", prompt]);
+// DO NOT spawn pi as a child process for sub-agents
+spawn("pi", ["--mode", "text", "-p", "--no-session"]);
 ```
 
 ### 6. Tests Required
 
 Add or update template/configurator tests that assert:
 
-- the generated extension contains `resolvePiInvocation`, `TRELLIS_PI_CLI_JS`, `process.execPath`, `APPDATA`, npm prefix lookup, and PATH splitting by `delimiter`;
-- the generated extension writes the prompt through `child.stdin?.end(prompt)`;
-- the generated extension contains bounded stdout/stderr collectors;
-- the old argv launcher and `toPiPromptArgument` are absent;
+- the generated extension registers `trellis_subagent` (not `subagent`);
+- the tool's `agent` parameter has `enum: ["trellis-implement", "trellis-check", "trellis-research"]`;
+- the generated extension contains `rpcSpawn` and `waitForAgentCompletion` helpers;
+- the generated extension does NOT contain `resolvePiInvocation`, `candidatePiCliJsPaths`, `BoundedBufferCollector`, or `spawn("pi"`;
+- the generated extension imports `randomUUID` from `node:crypto` and `spawnSync` from `node:child_process` (for session overview), but NOT `spawn` from `node:child_process`;
 - `.pi/extensions/trellis/index.ts` stays byte-for-byte aligned with `src/templates/pi/extensions/trellis/index.ts.txt`;
 - the dogfood extension compiles as TypeScript independently of the package build.
 
@@ -724,27 +713,25 @@ Add or update template/configurator tests that assert:
 #### Wrong
 
 ```typescript
-spawn("pi", ["--mode", "json", "-p", "--no-session", toPiPromptArgument(prompt)]);
-```
+// DO NOT spawn a Pi child process for sub-agents
+spawn("pi", ["--mode", "json", "-p", "--no-session", prompt]);
 
-This depends on direct executable lookup for `pi` and uses argv for an unbounded generated prompt.
+// DO NOT register subagent tool without enum constraint
+pi.registerTool({ name: "subagent", parameters: { agent: { type: "string" } } });
+
+// DO NOT use Agent tool for Trellis agents (context won't be injected)
+Agent({ subagent_type: "trellis-implement", prompt: "..." });
+```
 
 #### Correct
 
 ```typescript
-const invocation = resolvePiInvocation();
-const child = spawn(invocation.command, [
-  ...invocation.argsPrefix,
-  "--mode",
-  "text",
-  "-p",
-  "--no-session",
-], { stdio: ["pipe", "pipe", "pipe"], windowsHide: true });
+// Use trellis_subagent for Trellis workflow agents
+trellis_subagent({ agent: "trellis-implement", prompt: "Fix the bug" });
 
-child.stdin?.end(prompt);
+// Use Agent for non-Trellis agents
+Agent({ subagent_type: "Explore", description: "Find auth files", prompt: "..." });
 ```
-
-Resolve npm-shim installs through the real JS entrypoint when possible, keep `pi` as the compatibility fallback, and transport generated prompts through stdin.
 
 ---
 
